@@ -1,0 +1,7 @@
+# Exclude everything that’s not needed in the npm package
+src/
+test/
+rollup.config.js
+.gitignore
+README.md
+*.html
