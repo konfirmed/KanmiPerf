@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KanmiPerf Test</title>
+  <script src="../dist/kanmi-perf.js" defer></script>
+</head>
+<body>
+  <h1>KanmiPerf Test Page</h1>
+  <img alt="dimension" src="example.jpg"> <!-- No width/height on purpose -->
+  <script>
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.style.height = '200px';
+      el.textContent = 'Injected late!';
+      document.body.appendChild(el);
+    }, 3000);
+  </script>
+</body>
+</html>

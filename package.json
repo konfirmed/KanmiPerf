@@ -1,0 +1,24 @@
+{
+  "name": "kanmi-perf",
+  "version": "0.1.0",
+  "description": "In-browser JavaScript tool for real-time Core Web Vitals insights",
+  "main": "dist/kanmi-perf.js",
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "vite"
+  },
+  "author": "Kanmi Obasa <kanmi@konfirmed.com>",
+  "license": "MIT",
+  "keywords": [
+    "core-web-vitals",
+    "performance",
+    "web-vitals",
+    "lcp",
+    "cls",
+    "inp",
+    "long-tasks",
+    "diagnostics",
+    "in-browser",
+    "devtools"
+  ]
+}
