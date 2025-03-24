@@ -17,17 +17,18 @@
 
 ## 💾 Installation
 
+
+Include it as a script tag:
+
+```html
+<script src="https://cdn.jsdelivr.net/gh/konfirmed/kanmi-perf/dist/kanmi-perf.js" defer></script>
+```
 Install via npm:
 
 ```bash
 npm install kanmi-perf
 ```
 
-Or include it as a script tag:
-
-```html
-<script src="https://cdn.jsdelivr.net/gh/konfirmed/kanmi-perf/dist/kanmi-perf.js" defer></script>
-```
 
 ## 🧪 Usage
 
