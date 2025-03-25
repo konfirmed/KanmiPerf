@@ -1,6 +1,6 @@
 {
   "name": "kanmi-perf",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "In-browser JavaScript tool for real-time Core Web Vitals insights",
   "main": "dist/kanmi-perf.js",
   "files": [
