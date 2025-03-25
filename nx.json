@@ -1,0 +1,12 @@
+{
+    "npmScope": "kanmi",
+    "projects": {
+      "kanmi-perf": {
+        "tags": []
+      },
+      "kanmi-perf-pro": {
+        "tags": []
+      }
+    }
+  }
+  

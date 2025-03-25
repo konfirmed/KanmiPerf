@@ -1,8 +1,6 @@
 (function () {
   'use strict';
 
-  // kanmi-perf.js
-
   const KanmiPerf = (() => {
       const perf = {};
     

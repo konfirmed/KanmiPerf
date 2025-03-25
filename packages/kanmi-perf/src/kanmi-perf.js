@@ -1,5 +1,3 @@
-// kanmi-perf.js
-
 const KanmiPerf = (() => {
     const perf = {};
   
