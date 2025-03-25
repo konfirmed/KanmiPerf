@@ -173,7 +173,3 @@ const KanmiPerf = (() => {
   
   // Initialize KanmiPerf
   KanmiPerf.init();
-  
-  // Expose KanmiPerf for manual triggering in console if needed:
-  // e.g., open your console and run: KanmiPerf.run();
-  

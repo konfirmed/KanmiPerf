@@ -1,44 +1,41 @@
 const KanmiPerf = (() => {
   const perf = {};
+  // Debug flag for development environments
+  perf.debug = true;
 
-  // Global log export array
+  // Global log array and timeline for events
   window.__kanmiVitalsLog = window.__kanmiVitalsLog || [];
-  // Timeline events to track ordering of vital metrics
   perf.timeline = [];
 
   /** Utility Logger **/
   perf.log = (type, issues) => {
     const timestamp = new Date().toISOString();
-
-    // Log to console in a developer-friendly format:
     console.groupCollapsed(`[KanmiPerf 🚀] ⚠️ ${type} at ${timestamp}`);
-    issues.forEach((issue) => console.log(`- ${issue}`));
+    issues.forEach(issue => console.log(`- ${issue}`));
     console.groupEnd();
-
-    // Export the log entry for later inspection, e.g. exporting to JSON
     window.__kanmiVitalsLog.push({ type, issues, timestamp });
-    // Also record this event in a timeline array for ordering/debug analysis
     perf.timeline.push({ type, issues, time: performance.now() });
   };
 
-  /** DOM Analysis (Detect images missing explicit dimensions causing CLS) **/
+  /** DOM Analysis **/
   perf.domAnalysis = () => {
     const imgs = [...document.querySelectorAll("img:not([width]), img:not([height])")];
     if (imgs.length) {
       perf.log("DOM Issues", [
-        `${imgs.length} image${imgs.length > 1 ? "s" : ""} missing dimensions (causes CLS)`,
+        `${imgs.length} image${imgs.length > 1 ? "s" : ""} missing dimensions (causes CLS)`
       ]);
     }
   };
 
-  /** <head> Analysis (Check for render-blocking scripts) **/
+  /** <head> Analysis **/
   perf.headAnalysis = () => {
-    const headScripts = [...document.head.querySelectorAll("script[src]")];
-    const blockingScripts = headScripts.filter((script) => !script.defer && !script.async);
+    const blockingScripts = [...document.head.querySelectorAll("script[src]:not([async]):not([defer])")];
     if (blockingScripts.length) {
       perf.log("<head> Issues", [
         `${blockingScripts.length} blocking script${blockingScripts.length > 1 ? "s" : ""} without async/defer`,
-        ...blockingScripts.map((script) => `Suggest moving ${script.src} lower or load it with async/defer`),
+        ...blockingScripts.map(script =>
+          `Suggest moving ${script.src} lower or load it with async/defer`
+        )
       ]);
     }
   };
@@ -46,28 +43,24 @@ const KanmiPerf = (() => {
   /** Third-party Script Detection **/
   perf.thirdPartyAnalysis = () => {
     const host = location.hostname;
-    const scripts = [...document.scripts].filter((s) => s.src && !s.src.includes(host));
-    const syncScripts = scripts.filter((s) => !s.defer && !s.async);
+    const scripts = [...document.scripts].filter(s => s.src && !s.src.includes(host));
+    const syncScripts = scripts.filter(s => !s.defer && !s.async);
     if (syncScripts.length) {
-      perf.log(
-        "Third-party Issues",
-        syncScripts.map((script) => {
-          const hostname = new URL(script.src).hostname;
-          return `${hostname} synchronously loaded, delays rendering → Suggest loading async/defer or using Partytown`;
-        })
-      );
+      perf.log("Third-party Issues", syncScripts.map(script => {
+        return `${new URL(script.src).hostname} synchronously loaded, delays rendering → Suggest async/defer`;
+      }));
     }
   };
 
-  /** Long Task Monitoring (using PerformanceObserver API) **/
+  /** Long Task Monitoring **/
   perf.monitorLongTasks = () => {
     if (!("PerformanceObserver" in window)) return;
-    const observer = new PerformanceObserver((list) => {
-      list.getEntries().forEach((entry) => {
+    const observer = new PerformanceObserver(list => {
+      list.getEntries().forEach(entry => {
         if (entry.duration > 125) {
           perf.log("Long Task", [
             `Duration: ${Math.round(entry.duration)}ms`,
-            `→ Consider breaking into smaller tasks or deferring heavy JS`,
+            `→ Consider breaking into smaller tasks or deferring heavy JS`
           ]);
         }
       });
@@ -75,37 +68,15 @@ const KanmiPerf = (() => {
     observer.observe({ type: "longtask", buffered: true });
   };
 
-  /** Long Animation Frame (LoAF) Monitoring **/
-  perf.monitorLoAF = () => {
-    if (!PerformanceObserver.supportedEntryTypes.includes("long-animation-frame")) return;
-    const observer = new PerformanceObserver((list) => {
-      list.getEntries().forEach((entry) => {
-        const { duration, blockingDuration, renderTime, styleAndLayoutDuration } = entry;
-        const safeNumber = (num) => (Number.isFinite(num) ? Math.round(num) : "N/A");
-
-        let messages = [
-          `Duration: ${safeNumber(duration)}ms, Blocking: ${safeNumber(blockingDuration)}ms`,
-          `Render: ${safeNumber(renderTime)}ms, Layout: ${safeNumber(styleAndLayoutDuration)}ms`,
-        ];
-        if (renderTime === undefined || styleAndLayoutDuration === undefined) {
-          messages.push("Note: Browser does not support detailed render/layout metrics for LoAF entries.");
-        }
-        messages.push("→ Investigate heavy scripts or CSS causing recalculations");
-        perf.log("LoAF Detected", messages);
-      });
-    });
-    observer.observe({ type: "long-animation-frame", buffered: true });
-  };
-
-  /** INP Correlation (Basic Event Monitoring for slow interactions with element attribution) **/
+  /** INP Monitoring **/
   perf.monitorINP = () => {
     if (!PerformanceObserver.supportedEntryTypes.includes("event")) return;
-    const observer = new PerformanceObserver((list) => {
-      list.getEntries().forEach((entry) => {
+    const observer = new PerformanceObserver(list => {
+      list.getEntries().forEach(entry => {
         if (entry.duration > 300) {
-          // indicative of slow INP
-          let msg = [`${entry.name} delayed interaction response by ${Math.round(entry.duration)}ms`];
-          // Adding element attribution if available:
+          const msg = [
+            `${entry.name} delayed interaction response by ${Math.round(entry.duration)}ms`
+          ];
           if (entry.target) {
             msg.push(`Element: ${entry.target.outerHTML.slice(0, 100)}`);
           }
@@ -117,16 +88,17 @@ const KanmiPerf = (() => {
     observer.observe({ type: "event", durationThreshold: 300, buffered: true });
   };
 
-  /** Largest Contentful Paint (LCP) Monitoring with Element-level Attribution & UI Overlay **/
+  /** Largest Contentful Paint (LCP) Monitoring **/
   perf.monitorLCP = () => {
     if (!PerformanceObserver.supportedEntryTypes.includes("largest-contentful-paint")) return;
     let lcpEntry;
-    const observer = new PerformanceObserver((list) => {
-      list.getEntries().forEach((entry) => (lcpEntry = entry));
+    const observer = new PerformanceObserver(list => {
+      list.getEntries().forEach(entry => (lcpEntry = entry));
     });
     observer.observe({ type: "largest-contentful-paint", buffered: true });
 
-    document.addEventListener("visibilitychange", () => {
+    // Store a function to log LCP when visibility changes
+    perf._logLCP = () => {
       if (document.visibilityState === "hidden" && lcpEntry) {
         const elementInfo = lcpEntry.element
           ? lcpEntry.element.outerHTML.slice(0, 100)
@@ -136,34 +108,29 @@ const KanmiPerf = (() => {
             lcpEntry.renderTime ? Math.round(lcpEntry.renderTime) : Math.round(lcpEntry.loadTime)
           }ms`,
           `Element: ${elementInfo}`,
-          `→ Optimize images, text, and video content for faster loading`,
+          `→ Optimize images, text, and video content for faster loading`
         ]);
-        // Optional UI Overlay: Highlight the LCP element for visual debugging.
-        if (lcpEntry.element) {
+        // Highlight the LCP element in debug mode
+        if (perf.debug && lcpEntry.element) {
           lcpEntry.element.style.outline = "2px solid red";
-          setTimeout(() => {
-            lcpEntry.element.style.outline = "";
-          }, 3000);
+          setTimeout(() => { lcpEntry.element.style.outline = ""; }, 3000);
         }
       }
-    });
+    };
   };
 
-  /** Cumulative Layout Shift (CLS) Monitoring with Source Attribution **/
+  /** Cumulative Layout Shift (CLS) Monitoring **/
   perf.monitorCLS = () => {
     if (!PerformanceObserver.supportedEntryTypes.includes("layout-shift")) return;
     let clsValue = 0;
     let clsSources = [];
-    const observer = new PerformanceObserver((list) => {
-      list.getEntries().forEach((entry) => {
+    const observer = new PerformanceObserver(list => {
+      list.getEntries().forEach(entry => {
         if (!entry.hadRecentInput) {
           clsValue += entry.value;
-          // Capture layout shift sources if available (limit to top 3):
           if (entry.sources && entry.sources.length) {
-            entry.sources.slice(0, 3).forEach((src) => {
-              if (src.node) {
-                clsSources.push(src.node.outerHTML.slice(0, 100));
-              }
+            entry.sources.slice(0, 3).forEach(src => {
+              if (src.node) clsSources.push(src.node.outerHTML.slice(0, 100));
             });
           }
         }
@@ -171,18 +138,19 @@ const KanmiPerf = (() => {
     });
     observer.observe({ type: "layout-shift", buffered: true });
 
-    document.addEventListener("visibilitychange", () => {
+    // Store a function to log CLS on visibility change
+    perf._logCLS = () => {
       if (document.visibilityState === "hidden") {
         const messages = [
           `Cumulative Layout Shift: ${clsValue.toFixed(2)}`,
-          `→ Consider adding size attributes to images/videos, reserving space for ads/embeds, or avoiding dynamic content injection`,
+          `→ Consider adding size attributes to images/videos or reserving space for dynamic content`
         ];
         if (clsSources.length) {
           messages.push(`Top layout shift sources: ${clsSources.join(" | ")}`);
         }
         perf.log("CLS", messages);
       }
-    });
+    };
   };
 
   /** Time To First Byte (TTFB) Analysis **/
@@ -192,22 +160,22 @@ const KanmiPerf = (() => {
       const ttfb = navEntry.responseStart;
       perf.log("TTFB", [
         `Time To First Byte: ${ttfb}ms`,
-        `→ Consider optimizing backend response times and CDN performance`,
+        `→ Consider optimizing backend response times and CDN performance`
       ]);
     }
   };
 
-  /** First Input Delay (FID) Monitoring with Element Attribution **/
+  /** First Input Delay (FID) Monitoring **/
   perf.monitorFID = () => {
     if (!PerformanceObserver.supportedEntryTypes.includes("first-input")) return;
-    const observer = new PerformanceObserver((list) => {
+    const observer = new PerformanceObserver(list => {
       for (const entry of list.getEntries()) {
         if (entry.processingStart && entry.startTime) {
           const fid = entry.processingStart - entry.startTime;
           if (fid > 1) {
             perf.log("FID", [
               `First Input Delay: ${Math.round(fid)}ms`,
-              entry.target ? `Element: ${entry.target.outerHTML.slice(0, 100)}` : "",
+              entry.target ? `Element: ${entry.target.outerHTML.slice(0, 100)}` : ""
             ]);
           }
         }
@@ -219,41 +187,70 @@ const KanmiPerf = (() => {
   /** Timeline Debug: Compare Metrics Chronologically **/
   perf.analyzeTimeline = () => {
     if (perf.timeline.length > 1) {
-      // Sort events by recording time:
       const sorted = perf.timeline.sort((a, b) => a.time - b.time);
-      const timelineReport = sorted.map((event) => `${event.type} at ${Math.round(event.time)}ms`);
-      perf.log("Timeline Report", timelineReport);
+      const report = sorted.map(event => `${event.type} at ${Math.round(event.time)}ms`);
+      perf.log("Timeline Report", report);
     }
   };
 
-  /** Run All Analyses Manually **/
-  perf.run = () => {
-    perf.domAnalysis();
-    perf.headAnalysis();
-    perf.thirdPartyAnalysis();
-    perf.monitorLongTasks();
-    perf.monitorLoAF();
-    perf.monitorINP();
-    perf.monitorLCP();
-    perf.monitorCLS();
-    perf.timingAnalysis();
-    perf.monitorFID();
+  /** Combined Visibility Change Handler **/
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === "hidden") {
+      if (perf._logLCP) perf._logLCP();
+      if (perf._logCLS) perf._logCLS();
+      perf.analyzeTimeline();
+    }
   };
 
-  /** Initialization: Run on page load or immediately if already loaded **/
+  /** Export Logs Button (only in debug mode) **/
+  perf.addExportButton = () => {
+    const btn = document.createElement("button");
+    btn.innerText = "Export Kanmi Logs";
+    Object.assign(btn.style, { position: "fixed", bottom: "10px", right: "10px", zIndex: 9999 });
+    btn.onclick = () => {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(window.__kanmiVitalsLog, null, 2));
+      const dl = document.createElement("a");
+      dl.setAttribute("href", dataStr);
+      dl.setAttribute("download", "kanmi-vitals.json");
+      dl.click();
+    };
+    document.body.appendChild(btn);
+  };
+
+  /** Initialization Logic **/
   perf.init = () => {
     if (document.readyState === "complete") {
       perf.run();
     } else {
       window.addEventListener("load", perf.run);
     }
-    // When the page is hidden, analyze and log the timeline of events.
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "hidden") {
-        perf.analyzeTimeline();
-      }
-    });
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    if (perf.debug) perf.addExportButton();
+  };
+
+  /** Manual Trigger of All Analyses **/
+  perf.run = () => {
+    const runAnalysis = () => {
+      perf.domAnalysis();
+      perf.headAnalysis();
+      perf.thirdPartyAnalysis();
+      perf.monitorLongTasks();
+      perf.monitorINP();
+      perf.monitorLCP();
+      perf.monitorCLS();
+      perf.timingAnalysis();
+      perf.monitorFID();
+    };
+
+    if ("requestIdleCallback" in window) {
+      requestIdleCallback(runAnalysis);
+    } else {
+      runAnalysis();
+    }
   };
 
   return perf;
 })();
+
+// Initialize the performance monitoring
+KanmiPerf.init();
