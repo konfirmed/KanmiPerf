@@ -2,7 +2,7 @@
 
 **Advanced Web Vitals diagnostics for devtools, CI/CD pipelines, and real-time in-browser performance monitoring.**
 
-> Built by [Kanmi Obasa](https://github.com/konfirmed) — empowering developers to *see*, *debug*, and *ship* fast experiences.
+> *see*, *debug*, and *ship* fast experiences.
 
 ![npm](https://img.shields.io/npm/v/kanmi-perf-pro)  
 [🔗 View on NPM](https://www.npmjs.com/package/kanmi-perf-pro)
