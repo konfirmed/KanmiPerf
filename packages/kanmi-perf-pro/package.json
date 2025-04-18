@@ -1,6 +1,6 @@
 {
   "name": "kanmi-perf-pro",
-  "version": "0.1.8",
+  "version": "0.2.0",
   "description": "Advanced Web Vitals Toolkit with timeline, LCP/CLS overlays, and exportable logs. Built for CI/CD and devtool integration.",
   "main": "dist/kanmi-perf-pro.js",
   "files": [

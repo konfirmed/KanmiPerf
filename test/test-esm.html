@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>KanmiPerf ESM Test</title>
+  <script type="module">
+    import KanmiPerf from "./kanmi-perf.esm.js"; // ✅ Corrected path
+    console.log("Initializing KanmiPerf...");
+    KanmiPerf.init();
+
+    setTimeout(() => {
+      console.log("Metrics:", KanmiPerf.metrics || 'No metrics');
+      console.log("Issues:", KanmiPerf.issues || 'No issues');
+    }, 4000);
+  </script>
+</head>
+<body>
+  <h1>Testing KanmiPerf ESM in Browser</h1>
+</body>
+</html>

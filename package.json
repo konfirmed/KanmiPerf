@@ -1,6 +1,6 @@
 {
   "name": "kanmi-perf-monorepo",
-  "private": true,
+  "private": false,
   "workspaces": [
     "packages/kanmi-perf",
     "packages/kanmi-perf-pro"
@@ -10,6 +10,7 @@
     "dev": "npm run dev -w kanmi-perf"
   },
   "devDependencies": {
+    "@rollup/plugin-terser": "^0.4.4",
     "rollup": "^4.37.0"
   }
 }

@@ -1,4 +1,6 @@
-const KanmiPerf = (() => {
+import { KanmiPerfConfig } from './config.js';
+
+const KanmiPerf = () => {
   const perf = {};
 
   // Initialize persistent log and timeline arrays for export and debugging.
@@ -6,11 +8,11 @@ const KanmiPerf = (() => {
   perf.timeline = [];
   // Store final metrics and a short list of issues.
   perf.metrics = {
+    FCP: 0, 
     LCP: 0,
     CLS: 0,
     INP: 0,
     TTFB: 0,
-    FCP: 0, // Added FCP metric
     LongTasks: []
   };
   perf.issues = [];
@@ -55,7 +57,7 @@ const KanmiPerf = (() => {
     }
     const headHTML = document.head?.outerHTML || "";
     const headSizeKB = (headHTML.length / 1024).toFixed(1);
-    if (headHTML.length > 10000) {
+    if (headHTML.length > 8000) {
       suggestions.push(`The <head> section is large (${headSizeKB} KB)`, "→ Consider optimizing it.");
     }
     if (suggestions.length > 0) {
@@ -82,11 +84,11 @@ const KanmiPerf = (() => {
     const longTasks = [];
     const observer = new PerformanceObserver(list => {
       list.getEntries().forEach(entry => {
-        if (entry.duration > 125) {
+        if (entry.duration > 50) {
           const duration = Math.round(entry.duration);
           let verdict = "🟡 Minor";
-          if (duration > 300) verdict = "🚨 Severe";
-          else if (duration > 200) verdict = "⚠️ Moderate";
+          if (duration > 200) verdict = "🚨 Severe";
+          else if (duration > 125) verdict = "⚠️ Moderate";
           perf.log("Long Task", [
             `${verdict} – Main thread blocked for ${duration}ms`,
             "→ Break into smaller functions, use requestIdleCallback or Web Workers for heavy work"
@@ -233,7 +235,7 @@ const KanmiPerf = (() => {
     if (navEntry) {
       const ttfb = Math.round(navEntry.responseStart);
       // Use configurable thresholds for TTFB if provided.
-      const ttfbThresholds = (window.KanmiPerfConfig && window.KanmiPerfConfig.thresholds && window.KanmiPerfConfig.thresholds.TTFB) || { good: 200, needsImprovement: 600 };
+      const ttfbThresholds = KanmiPerfConfig.thresholds.TTFB;
       const suggestions = [`Time To First Byte: ${ttfb}ms`];
       if (ttfb <= ttfbThresholds.good) {
         suggestions.push("TTFB is in the Good range.");
@@ -341,7 +343,7 @@ const KanmiPerf = (() => {
     });
   };
 
-  // Optional: Global error monitoring to capture unhandled errors.
+// Global error monitoring to capture unhandled errors.
   window.onerror = (msg, url, lineNo, columnNo, error) => {
     const errorMessage = `${msg} at ${url}:${lineNo}:${columnNo}`;
     perf.log("JS Error", [errorMessage]);
@@ -350,7 +352,6 @@ const KanmiPerf = (() => {
 
   window.KanmiPerf = perf;
   return perf;
-})();
-
-// Initialize KanmiPerf immediately
-KanmiPerf.init();
+};
+const KanmiPerfInstance = KanmiPerf();
+export default KanmiPerfInstance;

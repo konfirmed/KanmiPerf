@@ -1,4 +1,5 @@
-const KanmiPerf = (() => {
+import { KanmiPerfConfig } from './config.js';
+const KanmiPerf = () => {
     const perf = {};
   
     /** Utility Logger **/
@@ -168,8 +169,8 @@ const KanmiPerf = (() => {
       }
     };
   
-    return perf;
-  })();
-  
-  // Initialize KanmiPerf
-  KanmiPerf.init();
+  return perf;
+};
+
+const KanmiPerfInstance = KanmiPerf();
+export default KanmiPerfInstance;

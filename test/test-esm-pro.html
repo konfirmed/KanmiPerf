@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>KanmiPerfPro ESM Test</title>
+  <script type="module">
+    import KanmiPerfPro from "./kanmi-perf-pro.esm.js";
+    console.log("✅ KanmiPerfPro init...");
+    KanmiPerfPro.init();
+
+    setTimeout(() => {
+      console.log("⏱️ Metrics:", KanmiPerfPro.metrics || 'no metrics');
+      console.log("⚠️ Issues:", KanmiPerfPro.issues || 'no issues');
+      console.log("📦 Log:", window.__kanmiVitalsLog || 'no logs');
+    }, 5000);
+  </script>
+</head>
+<body>
+  <h1>KanmiPerfPro ESM Test</h1>
+  <img src="https://www.knfrmd.com/assets/images/logo.png" alt="unoptimized image" />
+  <script>
+    setTimeout(() => {
+      const el = document.createElement("div");
+      el.textContent = "Delayed content";
+      el.style.marginTop = "300px";
+      document.body.appendChild(el);
+    }, 3000);
+  </script>
+</body>
+</html>
