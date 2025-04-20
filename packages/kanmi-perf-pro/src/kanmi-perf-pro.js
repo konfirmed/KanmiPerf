@@ -367,7 +367,7 @@ const KanmiPerf = () => {
     const key = options.licenseKey || window.KanmiPerfProLicenseKey;
     if (!key) {
       console.error(
-        '[KanmiPerf Pro] ⚠️ No licenceKey provided. Purchase one at https://kanmiperf.com/pricing'
+        '[KanmiPerf Pro] ⚠️ No licenceKey provided. Purchase one at https://knfrmd.com/pricing'
       );
       return;
     }

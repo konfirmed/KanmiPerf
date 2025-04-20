@@ -73,7 +73,7 @@ Your license key is provided after purchase via:
 - Email confirmation (if configured)
 - Future access via the License Dashboard
 
-🔗 Get your key at [https://kanmiperf.com/pricing](https://kanmiperf.com/pricing)
+🔗 Get your key at [https://knfrmd.com/pricing](https://knfrmd.com/pricing)
 
 ---
 
