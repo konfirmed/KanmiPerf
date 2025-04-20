@@ -2,7 +2,7 @@ import { KanmiPerfConfig } from './config.js';
 // ────────────────────────────────────────────────────────────────────────────
 //  LICENSING
 // ────────────────────────────────────────────────────────────────────────────
-const LICENSE_ENDPOINT = 'https://kanmiperf.com/api/license/validate';
+const LICENSE_ENDPOINT = 'https://knfrmd.com/api/license/validate';
 let __kanmiPerfLicenseValid = false;
 
 /**
