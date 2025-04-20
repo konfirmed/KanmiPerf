@@ -1,39 +1,86 @@
-# KanmiPerf (Core)
+# 🚀 KanmiPerf
 
-Lightweight web performance diagnostics for real-world usage with minimal overhead.
+> Real-time in-browser Core Web Vitals diagnostics – no setup, just insights.
 
----
+[![npm version](https://img.shields.io/npm/v/kanmi-perf.svg)](https://www.npmjs.com/package/kanmi-perf)
+[![Live Demo](https://img.shields.io/badge/demo-online-green)](https://konfirmed.github.io/KanmiPerf/)
 
-## Features
-
-- Tracks key metrics: LCP, CLS, FCP, INP, TTFB
-- Works in any browser
-- Lightweight: no timeline, no visual overlays
-- Ideal for embedding in production apps
-- Manual control over `init()` and `run()`
+**KanmiPerf** helps developers **identify**, **understand**, and **fix** web performance issues directly in the browser console.
 
 ---
 
-## Usage
+## 📸 Visual Output
 
-### 1. Load via CDN or as module
-```html
-<script src="dist/kanmi-perf.js" defer></script>
+```txt
+[KanmiPerf 🚀] ⚠️ LCP
+- Largest Contentful Paint: 2300ms
+- Element: IMG
+→ Optimize images, text, and video content for faster loading
 ```
-or
+
+---
+
+## 📦 Installation
+
+**CDN (IIFE)**
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/kanmi-perf@0.2.0/dist/kanmi-perf.js" defer></script>
+```
+
+**ESM Module**
+
+```js
+import KanmiPerf from "https://cdn.jsdelivr.net/npm/kanmi-perf@0.2.0/dist/kanmi-perf.esm.js";
+KanmiPerf.init();
+```
+
+**NPM**
+
+```bash
+npm install kanmi-perf
+```
+
 ```js
 import KanmiPerf from 'kanmi-perf';
-
-KanmiPerf.init();  // Start performance monitoring
+KanmiPerf.init();
 ```
 
-### 2. Metrics are exposed on:
+---
+
+## 🧪 Usage
+
+- Use `.init()` to auto-run on load.
+- Or call `.run()` manually for immediate analysis.
+
 ```js
-KanmiPerf.metrics
-KanmiPerf.issues
+KanmiPerf.run();
+
+console.log(KanmiPerf.metrics);
+console.log(KanmiPerf.issues);
 ```
 
-### 3. Designed for:
-- Real user monitoring (RUM)
-- Framework-agnostic deployment
-- Lightweight performance checks
+---
+
+## 🔬 What It Detects
+
+- 🖼️ Images missing dimensions (CLS)
+- 📦 Blocking `<script>` in `<head>`
+- 🌐 Sync third-party scripts
+- 🧠 Long Tasks
+- 🎞️ LoAF (Long Animation Frames)
+- ⌛ LCP (Largest Contentful Paint)
+- 🌀 CLS (Cumulative Layout Shift)
+- 🖱️ INP (Interaction to Next Paint)
+
+---
+
+## 🔗 Related
+
+Check out the enhanced [KanmiPerf Pro](https://www.npmjs.com/package/kanmi-perf-pro) with full logs, outlines, exportable data, and timeline overlays.
+
+---
+
+## 📄 License
+
+MIT – [Kanmi Obasa](https://www.konfirmed.com)

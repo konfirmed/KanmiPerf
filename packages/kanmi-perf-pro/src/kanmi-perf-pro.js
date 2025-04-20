@@ -1,4 +1,30 @@
 import { KanmiPerfConfig } from './config.js';
+// ────────────────────────────────────────────────────────────────────────────
+//  LICENSING
+// ────────────────────────────────────────────────────────────────────────────
+const LICENSE_ENDPOINT = 'https://kanmiperf.com/api/license/validate';
+let __kanmiPerfLicenseValid = false;
+
+/**
+ * Validate a KanmiPerf Pro licence key.
+ * Resolves to **true** if valid, **false** otherwise.
+ */
+async function validateLicense(key) {
+  try {
+    const res = await fetch(
+      `${LICENSE_ENDPOINT}?key=${encodeURIComponent(key)}`
+    );
+    const data = await res.json();
+    __kanmiPerfLicenseValid = !!data?.valid;
+  } catch (err) {
+    console.warn(
+      '[KanmiPerf Pro] Licence validation failed – running in demo mode.',
+      err
+    );
+    __kanmiPerfLicenseValid = false;
+  }
+  return __kanmiPerfLicenseValid;
+}
 
 const KanmiPerf = () => {
   const perf = {};
@@ -330,14 +356,36 @@ const KanmiPerf = () => {
   };
 
   /** Initialization **/
-  perf.init = () => {
-    if (document.readyState === "complete") {
+  /**
+   * Initialise KanmiPerf Pro
+   * @param {Object} [options]
+   * @param {string} [options.licenseKey] – your KanmiPerf Pro licence key
+   *
+   * A key can also be set globally as `window.KanmiPerfProLicenseKey`.
+   */
+  perf.init = async (options = {}) => {
+    const key = options.licenseKey || window.KanmiPerfProLicenseKey;
+    if (!key) {
+      console.error(
+        '[KanmiPerf Pro] ⚠️ No licenceKey provided. Purchase one at https://kanmiperf.com/pricing'
+      );
+      return;
+    }
+
+    const valid = await validateLicense(key);
+    if (!valid) {
+      console.error('[KanmiPerf Pro] ⚠️ Licence key invalid. Aborting run.');
+      return;
+    }
+
+    // Original bootstrap
+    if (document.readyState === 'complete') {
       perf.run();
     } else {
-      window.addEventListener("load", perf.run);
+      window.addEventListener('load', perf.run);
     }
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "hidden") {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
         perf.analyzeTimeline();
       }
     });
