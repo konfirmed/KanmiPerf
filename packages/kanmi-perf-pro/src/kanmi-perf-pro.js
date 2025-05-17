@@ -28,6 +28,10 @@ async function validateLicense(key) {
 
 const KanmiPerf = () => {
   const perf = {};
+  perf._observers = [];
+  perf._longTaskQueue = [];
+  perf._loafEntries = [];
+  perf._longTaskTimer = null;
 
   // Initialize persistent log and timeline arrays for export and debugging.
   window.__kanmiVitalsLog = window.__kanmiVitalsLog || [];
@@ -39,9 +43,64 @@ const KanmiPerf = () => {
     CLS: 0,
     INP: 0,
     TTFB: 0,
+    LoAF: [],
     LongTasks: []
   };
   perf.issues = [];
+
+  perf.getReport = () => {
+    return {
+      metrics: perf.metrics,
+      issues: perf.issues,
+      timeline: perf.timeline,
+      env: {
+        userAgent: navigator.userAgent,
+        connection: navigator.connection?.effectiveType || 'unknown',
+        device: window.innerWidth < 768 ? 'mobile' : 'desktop'
+      }
+    };
+  };
+
+  const getScore = (value, good, poor) => {
+    if (value <= good) return "✅ Good";
+    if (value <= poor) return "🟡 Needs Improvement";
+    return "🚨 Poor";
+  };
+
+  /**
+   * Returns status strings for each metric based on configured thresholds.
+   * @returns {Object} Mapping of metric names to status emojis and labels.
+   */
+  perf.getScores = () => {
+    const t = KanmiPerfConfig.thresholds;
+    return {
+      LCP: getScore(perf.metrics.LCP, t.LCP.good, t.LCP.needsImprovement),
+      CLS: getScore(perf.metrics.CLS, t.CLS.good, t.CLS.needsImprovement),
+      TTFB: getScore(perf.metrics.TTFB, t.TTFB.good, t.TTFB.needsImprovement),
+      INP: getScore(perf.metrics.INP, t.INP.good, t.INP.needsImprovement),
+      FCP: getScore(perf.metrics.FCP, t.FCP.good, t.FCP.needsImprovement)
+    };
+  };
+
+  /**
+   * Computes an overall page score out of 100 based on weighted metric statuses.
+   * @returns {number} Rounded page score.
+   */
+  perf.getPageScore = () => {
+    const scores = perf.getScores();
+    const w = KanmiPerfConfig.weights;
+    let total = 0;
+    const statusToScore = {
+      "✅ Good": 100,
+      "🟡 Needs Improvement": 60,
+      "🚨 Poor": 20
+    };
+    for (const metric in w) {
+      const status = scores[metric] || "🟡 Needs Improvement";
+      total += w[metric] * (statusToScore[status] || 50);
+    }
+    return Math.round(total);
+  };
 
   /** Utility Logger **/
   perf.log = (type, issues) => {
@@ -60,12 +119,44 @@ const KanmiPerf = () => {
     });
   };
 
+  /** Page Name **/
+  perf.pageName = () => {
+    const canonicalLinks = [...document.querySelectorAll('link[rel="canonical"]')];
+    const canonicalHrefs = canonicalLinks.map(link => link.href);
+    perf.log("Page", canonicalHrefs);
+  };
+
   /** DOM Analysis **/
   perf.domAnalysis = () => {
     const imgs = [...document.querySelectorAll("img:not([width]), img:not([height])")];
-    if (imgs.length) {
-      perf.log("DOM Issues", [
-        `${imgs.length} image${imgs.length > 1 ? "s" : ""} missing dimensions (causes CLS)`
+      if (imgs.length) {
+        perf.log("DOM Issues", [
+          `${imgs.length} image${imgs.length > 1 ? "s" : ""} missing dimensions (causes CLS)`
+        ]);
+      }
+    // Check for images missing alt attributes (accessibility)
+    const imgsNoAlt = [...document.querySelectorAll("img:not([alt])")];
+    if (imgsNoAlt.length) {
+      perf.log("DOM Accessibility Issues", [
+        `${imgsNoAlt.length} image${imgsNoAlt.length > 1 ? "s" : ""} missing alt text`
+      ]);
+    }
+    // Check for excessive inline styles (performance / maintainability)
+    const inlineStyled = [...document.querySelectorAll("[style]")];
+    if (inlineStyled.length) {
+      perf.log("DOM Styling Issues", [
+        `${inlineStyled.length} element${inlineStyled.length > 1 ? "s" : ""} with inline styles`
+      ]);
+    }
+    // Check for deep DOM nesting
+    const maxDepth = (node, depth = 0) => {
+      if (!node.children || node.children.length === 0) return depth;
+      return Math.max(...[...node.children].map(child => maxDepth(child, depth + 1)));
+    };
+    const depth = maxDepth(document.body);
+    if (depth > 10) {
+      perf.log("DOM Structure Issues", [
+        `DOM nesting depth is ${depth}, which may hurt performance`
       ]);
     }
   };
@@ -104,6 +195,31 @@ const KanmiPerf = () => {
     }
   };
 
+  /** First Contentful Paint (FCP) Monitoring **/
+    perf.monitorFCP = () => {
+      if (!PerformanceObserver.supportedEntryTypes.includes("paint")) return;
+      let fcpEntry;
+      const observer = new PerformanceObserver(list => {
+        list.getEntries().forEach(entry => {
+          if (entry.name === "first-contentful-paint") {
+            fcpEntry = entry;
+          }
+        });
+      });
+      observer.observe({ type: "paint", buffered: true });
+      perf._observers.push(observer);
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "hidden" && fcpEntry) {
+          const fcpTime = Math.round(fcpEntry.startTime);
+          perf.log("FCP", [
+            `First Contentful Paint: ${fcpTime}ms`,
+            "→ Ensure critical resources are loaded efficiently."
+          ]);
+          perf.metrics.FCP = fcpTime;
+        }
+      });
+    };
+
   /** Long Task Monitoring **/
   perf.monitorLongTasks = () => {
     if (!("PerformanceObserver" in window)) return;
@@ -133,6 +249,16 @@ const KanmiPerf = () => {
     const observer = new PerformanceObserver(list => {
       list.getEntries().forEach(entry => {
         const { duration, blockingDuration, renderTime, styleAndLayoutDuration } = entry;
+        // Record each LoAF entry as an object for later analysis/export
+        const loafObj = {
+          duration: Number.isFinite(duration) ? Math.round(duration) : null,
+          blockingDuration: Number.isFinite(blockingDuration) ? Math.round(blockingDuration) : null,
+          renderTime: Number.isFinite(renderTime) ? Math.round(renderTime) : null,
+          styleAndLayoutDuration: Number.isFinite(styleAndLayoutDuration) ? Math.round(styleAndLayoutDuration) : null,
+          timestamp: Date.now()
+        };
+        perf._loafEntries.push(loafObj);
+        perf.metrics.LoAF.push(loafObj);
         const safeNumber = (num) => Number.isFinite(num) ? Math.round(num) : "N/A";
         let messages = [
           `Duration: ${safeNumber(duration)}ms, Blocking: ${safeNumber(blockingDuration)}ms`,
@@ -143,6 +269,9 @@ const KanmiPerf = () => {
         }
         messages.push("→ Investigate heavy scripts or CSS causing recalculations");
         perf.log("LoAF Detected", messages);
+        if (window.KanmiPerfDebug) {
+          console.debug("[KanmiPerf Debug] LoAF entry:", loafObj);
+        }
       });
     });
     observer.observe({ type: "long-animation-frame", buffered: true });
@@ -343,6 +472,8 @@ const KanmiPerf = () => {
 
   /** Run All Analyses Manually **/
   perf.run = () => {
+    perf.pageName();
+    perf.analyzeTimeline();
     perf.domAnalysis();
     perf.headAnalysis();
     perf.thirdPartyAnalysis();
